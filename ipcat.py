@@ -100,4 +100,4 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("[i] usage: python ipcat.py <address>\t# (e.g. 'python ipcat.py 2.16.1.0')", file=sys.stderr)
     else:
-        print("%s: %s" % (sys.argv[1], lookup(sys.argv[1]) or '-'))
+        print("%s" % lookup(sys.argv[1]) or '-')
