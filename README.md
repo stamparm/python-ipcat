@@ -1,5 +1,5 @@
 # ipcat.py
-  Python module for [client9/ipcat](https://github.com/client9/ipcat) database (datacenters, co-location centers, shared and virtual webhosting providers). CSV entries are automatically parsed and stored into the local SQLite database so they could be used in a fast way.
+  Python module for looking up the [client9/ipcat](https://github.com/client9/ipcat) database (datacenters, co-location centers, shared and virtual webhosting providers). CSV entries are automatically parsed and stored into the local SQLite database so they could be used in a fast way.
 
 Sample run(s) as a standalone:
 
