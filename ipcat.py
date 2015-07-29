@@ -8,6 +8,7 @@ import time
 import urllib
 
 LAST_UPDATE = None
+SQLITE_CURSOR = None
 DOWNLOAD_FRESH_IPCAT_DELTA_DAYS = 4
 IPCAT_HOME = os.path.join(os.path.expandvars(os.path.expanduser("~")), ".ipcat")
 IPCAT_FILENAME = os.path.join(IPCAT_HOME, "ipcat.csv")
@@ -26,6 +27,7 @@ def _retrieve_url(url, filename=None):
     return filename
 
 def _update():
+    global SQLITE_CURSOR
     global LAST_UPDATE
 
     try:
@@ -34,17 +36,28 @@ def _update():
 
         if not os.path.exists(IPCAT_HOME):
             print("[i] creating directory '%s' for database storage" % IPCAT_HOME, file=sys.stderr)
+
             os.makedirs(IPCAT_HOME)
 
         if not os.path.exists(IPCAT_FILENAME) or (time.time() - os.stat(IPCAT_FILENAME).st_mtime) / 3600 / 24 >= DOWNLOAD_FRESH_IPCAT_DELTA_DAYS:
             print("[i] retrieving '%s'" % IPCAT_URL, file=sys.stderr)
+
             filename = _retrieve_url(IPCAT_URL, IPCAT_FILENAME)
+
+            if SQLITE_CURSOR:
+                SQLITE_CURSOR.connection.close()
+                SQLITE_CURSOR = None
 
             if os.path.exists(IPCAT_SQLITE):
                 os.remove(IPCAT_SQLITE)
 
         if not os.path.exists(IPCAT_SQLITE):
             print("[i] creating database '%s'" % IPCAT_SQLITE, file=sys.stderr)
+
+            if SQLITE_CURSOR:
+                SQLITE_CURSOR.connection.close()
+                SQLITE_CURSOR = None
+
             with sqlite3.connect(IPCAT_SQLITE) as con:
                 cur = con.cursor()
                 cur.execute("CREATE TABLE ranges (start_int INT, end_int INT, name TEXT)")
@@ -63,18 +76,21 @@ def _update():
     except Exception, ex:
         print("[x] something went wrong during database update ('%s')" % str(ex), file=sys.stderr)
 
-def ipcat(address):
+def lookup(address):
+    global SQLITE_CURSOR
+
     retval = None
 
     _update()
 
+    if SQLITE_CURSOR is None:
+        SQLITE_CURSOR = sqlite3.connect(IPCAT_SQLITE).cursor()
+
     try:
-        with sqlite3.connect(IPCAT_SQLITE) as con:
-            cur = con.cursor()
-            _ = _addr_to_int(address)
-            cur.execute("SELECT name FROM ranges WHERE start_int <= ? AND end_int >= ?", (_, _))
-            _ = cur.fetchone()
-            retval = str(_[0]) if _ else retval
+        _ = _addr_to_int(address)
+        SQLITE_CURSOR.execute("SELECT name FROM ranges WHERE start_int <= ? AND end_int >= ?", (_, _))
+        _ = SQLITE_CURSOR.fetchone()
+        retval = str(_[0]) if _ else retval
     except ValueError:
         print("[x] invalid IP address '%s'" % address, file=sys.stderr)
 
@@ -84,4 +100,4 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("[i] usage: python ipcat.py <address>\t# (e.g. 'python ipcat.py 2.16.1.0')", file=sys.stderr)
     else:
-        print(ipcat(sys.argv[1]) or '-')
+        print("%s: %s" % (sys.argv[1], lookup(sys.argv[1]) or '-'))
