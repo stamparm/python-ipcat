@@ -7,4 +7,4 @@ Sample run(s) as a standalone:
 
 Sample benchmark as a module (lookup of 10000 random IP addresses):
 
-![](http://i.imgur.com/rXlnBjG.png)
+![](http://i.imgur.com/siidFzE.png)
